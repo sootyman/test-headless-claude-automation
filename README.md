@@ -120,7 +120,7 @@ The human stays in the approval seat, not the execution seat.
 
 ## Quick start
 
-See [SETUP.md](SETUP.md) for the full 9-step setup guide. See [docs/reference.md](docs/reference.md) for the complete technical reference (tool permission layers, hook execution model, agent lifecycle, cost/limits, failure modes). The short version:
+See [SETUP.md](SETUP.md) for the full setup guide. See [docs/reference.md](docs/reference.md) for the complete technical reference (tool permission layers, hook execution model, agent lifecycle, cost/limits, failure modes). The short version:
 
 1. Use this template to create a new repo (or copy the files into an existing one)
 2. Add `ANTHROPIC_API_KEY` to GitHub repo secrets
