@@ -11,15 +11,15 @@ Human (local)                    GitHub Actions (remote)
 =================                ========================
 
 Claude Code CLI                  claude-dev.yml
-  + Linear MCP        ------>      anthropics/claude-code-action@v1
-  + /pipeline command              Headless Claude (dev agent)
-  |                                  |
-  v                                  v
-Linear Project/Issues            Feature branch + PR
-  |                                  |
-  v                                  v
-GitHub Issues (synced)           claude-review.yml
-  + agent:ready label              Headless Claude (review agent)
+  + /pipeline command  ------>     anthropics/claude-code-action@v1
+  |                                Headless Claude (dev agent)
+  v                                  |
+GitHub Issues                        v
+  + agent:ready label            Feature branch + PR
+                                     |
+                                     v
+                                 claude-review.yml
+                                   Headless Claude (review agent)
                                      |
                                      v
                                  claude-fix.yml (if issues found)
@@ -31,10 +31,6 @@ GitHub Issues (synced)           claude-review.yml
                                      |
                                      v
                                  Merge to main
-                                     |
-                                     v
-                                 linear-sync.yml
-                                   Linear issue -> Done
 ```
 
 Two human touchpoints: (1) write the requirements doc, (2) review and merge PRs.
@@ -50,11 +46,8 @@ The `/pipeline` command (`.claude/commands/pipeline.md`) runs locally in the Cla
 1. You write a requirements doc in `docs/requirements/`
 2. Run `/pipeline docs/requirements/your-feature.md` (optionally add a git URL as a second argument to build on an existing codebase)
 3. If a starter codebase URL was provided, Claude clones it, copies files into the project root (preserving template infrastructure), commits, and pushes
-4. Claude reads the doc and connects to Linear via MCP
-5. Breaks requirements into agent-sized stories (each completable in <30 turns), referencing existing files if a starter codebase was imported
-6. Creates a Linear Project and Issues with structured descriptions
-7. Waits for your confirmation before creating anything
-8. Syncs to GitHub Issues and applies the `agent:ready` label
+4. Claude reads the doc and breaks requirements into agent-sized stories (each completable in <30 turns), referencing existing files if a starter codebase was imported
+5. Creates GitHub Issues with structured descriptions and applies the `agent:ready` label
 
 The `agent:ready` label is the trigger. Stories with unresolved dependencies do not get the label until their blockers are merged.
 
@@ -108,7 +101,6 @@ Only bot review comments trigger the fix agent. Human comments do not trigger it
 
 1. You review the PR (read the agent's conversation log, not just the diff)
 2. Approve and merge, or leave comments for another fix cycle
-3. On merge, `linear-sync.yml` fires and moves the linked Linear issue to "Done"
 
 ---
 
@@ -121,13 +113,12 @@ Only bot review comments trigger the fix agent. Human comments do not trigger it
 | Dev Agent | `claude-dev.yml` | `agent:ready` label, issue assignment, `@claude` comment | Yes | 40 | Implement feature from issue |
 | Review Agent | `claude-review.yml` | PR open/update, review comment, `@claude` on PR | Yes | 10 | Review PR against checklist |
 | Fix Agent | `claude-fix.yml` | Bot review comments only | Yes | 15 | Fix review feedback (5 iteration cap) |
-| Linear Sync | `linear-sync.yml` | PR opened, PR merged | No (shell only) | N/A | Bidirectional Linear-GitHub sync |
 
 ### Commands (`.claude/commands/`)
 
 | Command | File | Purpose |
 |---------|------|---------|
-| `/pipeline` | `pipeline.md` | PM Agent: reads requirements doc, optionally imports a starter codebase, creates Linear Project and Issues, syncs to GitHub, applies `agent:ready` label |
+| `/pipeline` | `pipeline.md` | PM Agent: reads requirements doc, optionally imports a starter codebase, creates GitHub Issues, applies `agent:ready` label, monitors progress |
 | `/review` | `review.md` | 3-iteration QC review: (1) correctness, (2) architecture, (3) security/performance |
 
 ### Agents (`.claude/agents/`)
@@ -154,7 +145,6 @@ Only bot review comments trigger the fix agent. Human comments do not trigger it
 
 | File | Purpose |
 |------|---------|
-| `.mcp.json` | Linear MCP server configuration (enables `/pipeline` to create Linear issues) |
 | `CLAUDE.md` | Project instructions read by every agent (local and headless) |
 | `.github/ISSUE_TEMPLATE/story.yml` | Structured issue template with checkboxes for agent progress tracking |
 | `.gitignore` | Ignores node_modules, env files, build artifacts, test results, IDE files, tasks/ |
@@ -266,7 +256,6 @@ This template uses PreToolUse hooks only. Add PostToolUse hooks in `settings.jso
 ```
 Session start
   -> Loads CLAUDE.md, settings.json, commands
-  -> Launches MCP servers (.mcp.json)
   -> Hooks fire on every tool call
   -> Subagents spawned via Task tool (own context window)
   -> Session end: MCP servers terminated, processes cleaned up
@@ -306,8 +295,6 @@ Each agent gets a clean slate. No state leaks between runs.
 | Secret | Where It Lives | Used By |
 |--------|---------------|---------|
 | `ANTHROPIC_API_KEY` | GitHub Actions secret | claude-dev, claude-review, claude-fix workflows |
-| `LINEAR_API_KEY` | GitHub Actions secret | linear-sync workflow |
-| Linear OAuth token | Local OS keychain | `/pipeline` command (via Linear MCP) |
 | GitHub token | Auto-provided by Actions | All workflows (via `secrets.GITHUB_TOKEN`) |
 | Claude Max subscription | Local Claude Code auth | Interactive CLI usage |
 
@@ -324,14 +311,12 @@ The template's `.gitignore` excludes `.env`, `.env.local`, and `.env.production`
 | Dev Agent | $1-5 per run | 40 | 30 min (GitHub Actions default) |
 | Review Agent | $0.50-2 per run | 10 | 15 min |
 | Fix Agent | $0.50-2 per run | 15 | 15 min |
-| Linear Sync | $0 (no AI) | N/A | 5 min |
 
 ### Platform Costs
 
 | Service | Cost | Notes |
 |---------|------|-------|
 | GitHub Actions | Free tier: 2,000 min/mo | Public repos: unlimited |
-| Linear | $8/user/mo | Standard plan |
 | CodeRabbit | $15/user/mo | Free for open source |
 | Anthropic API | Per-token pricing | 200K context window |
 | Claude Max (local) | $100-200/mo | For interactive CLI usage |
@@ -341,7 +326,6 @@ The template's `.gitignore` excludes `.env`, `.env.local`, and `.env.production`
 - Keep stories small (< 30 turns) to minimize per-run cost
 - The 5-iteration fix cap prevents runaway costs from review loops
 - Review agents use read-only tools (lower token usage)
-- Linear sync uses zero AI (pure shell + GraphQL)
 
 ---
 
@@ -370,8 +354,7 @@ You write docs/requirements/feature.md
   v
 /pipeline command (local Claude Code CLI)
   |  (Optional) Clones starter codebase, copies into repo, commits, pushes
-  |  Uses: Linear MCP (list_teams, create_project, create_issue)
-  |  Creates: Linear Project + Issues (referencing existing code if starter was imported)
+  |  Creates: GitHub Issues with structured descriptions
   |  Applies: agent:ready label on GitHub Issues
   |
   v
@@ -395,11 +378,6 @@ claude-fix.yml triggers (on bot review comments)  [if issues found]
 Human reviews PR
   |  Reads: conversation log + diff
   |  Action: approve and merge, or comment for another cycle
-  |
-  v
-linear-sync.yml triggers (on PR merge)
-  |  Uses: Linear GraphQL API (no AI)
-  |  Updates: Linear issue status to "Done"
   |
   v
 Deploy (your CI/CD pipeline)

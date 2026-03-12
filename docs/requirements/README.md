@@ -2,7 +2,7 @@
 
 Place your requirements documents here as markdown files.
 
-The `/pipeline` command reads a requirements doc from this directory, breaks it into Linear stories, creates GitHub Issues, and triggers headless dev agents.
+The `/pipeline` command reads a requirements doc from this directory, breaks it into GitHub Issues, and triggers headless dev agents.
 
 ## Usage
 

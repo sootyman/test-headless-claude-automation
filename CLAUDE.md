@@ -121,11 +121,6 @@ Agents operate autonomously within these boundaries:
 
 **PR task lists**: After creating a PR, include a checklist of completed and remaining items in the PR body. Update before pushing final changes.
 
-**Linear status flow** (automated by workflows, not agents):
-- `Todo` → `In Progress`: when dev agent starts (claude-dev.yml)
-- `In Progress` → `In Review`: when PR is opened (linear-sync.yml)
-- `In Review` → `Done`: when PR is merged (linear-sync.yml)
-
 ### Commit Conventions
 
 - One logical change per commit

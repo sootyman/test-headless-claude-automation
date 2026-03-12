@@ -10,7 +10,7 @@ The question that led to this template: does Claude actually need you sitting th
 
 It doesn't. Claude runs headless in GitHub Actions runners the same way we've run headless browsers in CI for years. No IDE. No chat window. Just a process that starts, reads an issue, implements a feature, opens a PR, and shuts down. The agent is gone, but the PR is there - with a full conversation log of every decision it made, every file it touched, every test it ran. It's more transparent than most human-written PRs.
 
-This template contains the complete automation infrastructure - GitHub Actions workflows, Claude Code configuration, Linear integration, and safety hooks - extracted from a production pipeline and stripped of all project-specific code. Fork it, fill in your CLAUDE.md, and you have a working agent pipeline.
+This template contains the complete automation infrastructure - GitHub Actions workflows, Claude Code configuration, and safety hooks - extracted from a production pipeline and stripped of all project-specific code. Fork it, fill in your CLAUDE.md, and you have a working agent pipeline.
 
 ## What's in the box
 
@@ -19,7 +19,6 @@ This template contains the complete automation infrastructure - GitHub Actions w
   claude-dev.yml          Dev agent: reads GitHub Issue, implements, opens PR
   claude-review.yml       Review agent: auto-reviews every PR on open/update
   claude-fix.yml          Fix agent: reads bot review feedback, pushes fixes (5 iteration cap)
-  linear-sync.yml         Bidirectional Linear <> GitHub sync
 
 .github/ISSUE_TEMPLATE/
   story.yml               Structured issue template with checkboxes for agent progress tracking
@@ -27,11 +26,10 @@ This template contains the complete automation infrastructure - GitHub Actions w
 .claude/
   settings.json           Safety hooks + permission rules
   hooks/block-destructive.sh
-  commands/pipeline.md    /pipeline command (requirements doc -> Linear stories -> GitHub Issues)
+  commands/pipeline.md    /pipeline command (requirements doc -> GitHub Issues -> dev agents)
   commands/review.md      /review command (3-pass QC review)
   agents/security-reviewer.md
 
-.mcp.json                 Linear MCP server config
 CLAUDE.md                 Project instructions skeleton (fill this in)
 docs/requirements/        Where requirements docs live
 ```
@@ -49,9 +47,8 @@ You write a requirements doc (docs/requirements/feature.md)
 /pipeline command (Claude Code CLI) — executes immediately, no confirmation needed
   - (Optional) Clones a starter codebase, copies it into the repo, commits and pushes
   - Reads the requirements doc
-  - Breaks it into sized stories using Linear MCP
-  - Creates Linear issues with structured descriptions
-  - Syncs to GitHub Issues with "agent:ready" label (triggers dev agents)
+  - Breaks it into sized GitHub Issues with structured descriptions
+  - Applies "agent:ready" label to trigger dev agents
   - Monitors agent progress until all stories are merged or failed
   |
   v
@@ -85,9 +82,7 @@ You review the PR
   - Approve and merge, or leave comments for another fix cycle
   |
   v
-linear-sync.yml fires (on PR merge)
-  - Moves the linked Linear issue to "Done"
-  - The story is complete
+The story is complete
 ```
 
 The CLAUDE.md file in your repo is what ties it together. It gives every agent the same architectural context, the same rules, the same testing standards. The agents read it the same way a new developer reads a contributing guide on their first day.
@@ -125,14 +120,14 @@ The human stays in the approval seat, not the execution seat.
 
 ## Quick start
 
-See [SETUP.md](SETUP.md) for the full 9-step setup guide. See [docs/reference.md](docs/reference.md) for the complete technical reference (tool permission layers, hook execution model, agent lifecycle, cost/limits, failure modes). The short version:
+See [SETUP.md](SETUP.md) for the full setup guide. See [docs/reference.md](docs/reference.md) for the complete technical reference (tool permission layers, hook execution model, agent lifecycle, cost/limits, failure modes). The short version:
 
 1. Use this template to create a new repo (or copy the files into an existing one)
-2. Add `ANTHROPIC_API_KEY` and `LINEAR_API_KEY` to GitHub repo secrets
+2. Add `ANTHROPIC_API_KEY` to GitHub repo secrets
 3. Run `/install-github-app` in Claude Code to install the Anthropic GitHub App
 4. Fill in `CLAUDE.md` with your project's architecture, policies, and commands
 5. Write a requirements doc in `docs/requirements/`
-6. Run `/pipeline docs/requirements/your-feature.md` (or `/pipeline docs/requirements/your-feature.md https://github.com/user/starter-repo` to build on an existing codebase). The pipeline executes immediately — it creates Linear stories, syncs GitHub Issues, triggers dev agents, and monitors progress. No confirmation prompts.
+6. Run `/pipeline docs/requirements/your-feature.md` (or `/pipeline docs/requirements/your-feature.md https://github.com/user/starter-repo` to build on an existing codebase). The pipeline executes immediately — it creates GitHub Issues, triggers dev agents, and monitors progress. No confirmation prompts.
 7. Watch the agents work. Review the PRs.
 
 ## What you customize per project
@@ -153,7 +148,6 @@ See [SETUP.md](SETUP.md) for the full 9-step setup guide. See [docs/reference.md
 ### Core tools
 - [anthropics/claude-code-action](https://github.com/anthropics/claude-code-action) - the GitHub Action that runs Claude Code headless in CI
 - [Claude Code documentation](https://docs.anthropic.com/en/docs/claude-code)
-- [Linear MCP server](https://linear.app/docs/mcp) - how /pipeline creates stories
 - [CodeRabbit](https://www.coderabbit.ai/) - optional automated code review (40+ linters)
 
 ### Background reading
@@ -163,6 +157,5 @@ See [SETUP.md](SETUP.md) for the full 9-step setup guide. See [docs/reference.md
 - [Addy Osmani: AI Coding Workflow](https://addyosmani.com/blog/ai-coding-workflow/) - spec-first approach from Google Chrome lead
 
 ### Alternative patterns
-- [Cyrus](https://www.atcyrus.com/) - Linear-native agent (alternative to GitHub Actions approach)
 - [Devin](https://devin.ai/) - fully managed autonomous agent
 - [GitHub Copilot Coding Agent](https://docs.github.com/en/copilot/using-github-copilot/using-copilot-coding-agent-to-work-on-tasks/about-assigning-tasks-to-copilot) - GitHub's native agent
