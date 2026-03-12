@@ -73,7 +73,7 @@ jobs:
         if: steps.iteration.outputs.skip != 'true'
         uses: anthropics/claude-code-action@22891970a71915a0bff651b093e5be2b99f336ba # v1
         with:
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           claude_args: "--max-turns 15"
           prompt: |
             A code review bot has posted feedback on this PR (#${{ github.event.pull_request.number }}).
