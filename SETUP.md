@@ -6,7 +6,6 @@ How to set up the autonomous agent pipeline for a new project.
 
 - GitHub repository
 - [Claude Code CLI](https://claude.ai/code) installed locally
-- [Linear](https://linear.app) workspace
 - Anthropic API key (for headless agents)
 
 ## Step 1: Repository Setup
@@ -16,7 +15,6 @@ If you used this as a GitHub template, you're already done with the file structu
 ```
 .github/           # Workflows, issue templates
 .claude/           # Hooks, commands, agents, settings
-.mcp.json          # Linear MCP config
 CLAUDE.md          # Project instructions (fill this in!)
 docs/requirements/ # Where requirements docs live
 ```
@@ -28,7 +26,6 @@ Go to **Settings > Secrets and variables > Actions** and add:
 | Secret | Value | Used By |
 |--------|-------|---------|
 | `ANTHROPIC_API_KEY` | Your Anthropic API key | claude-dev, claude-review, claude-fix workflows |
-| `LINEAR_API_KEY` | Your Linear personal API key | linear-sync workflow |
 
 ## Step 3: Claude Code GitHub App
 
@@ -40,20 +37,7 @@ In your local Claude Code terminal:
 
 This installs the Anthropic GitHub App on your repo, which `anthropics/claude-code-action@v1` requires.
 
-## Step 4: Linear MCP (for /pipeline)
-
-The `.mcp.json` file configures the Linear MCP server. On first use, Claude Code will open an OAuth flow in your browser to authenticate with Linear.
-
-Test it:
-```bash
-# In Claude Code CLI
-/pipeline docs/requirements/your-feature.md
-
-# Or build on an existing codebase (optional second argument)
-/pipeline docs/requirements/your-feature.md https://github.com/user/starter-repo
-```
-
-## Step 5: Fill in CLAUDE.md
+## Step 4: Fill in CLAUDE.md
 
 The template `CLAUDE.md` has TODO markers. Fill in:
 - Project overview (what it does, tech stack)
@@ -64,7 +48,7 @@ The template `CLAUDE.md` has TODO markers. Fill in:
 
 This file is read by every agent (local and headless). It is the single source of truth for how to work in your codebase.
 
-## Step 6: Customize Review Criteria
+## Step 5: Customize Review Criteria
 
 Edit `.github/workflows/claude-review.yml` and replace the TODO comments with your project's review checklist. Examples:
 - Data isolation rules
@@ -72,7 +56,7 @@ Edit `.github/workflows/claude-review.yml` and replace the TODO comments with yo
 - Compliance requirements
 - Critical paths requiring human review
 
-## Step 7: Branch Protection (Recommended)
+## Step 6: Branch Protection (Recommended)
 
 Configure GitHub branch protection on `main`:
 
@@ -82,11 +66,11 @@ Configure GitHub branch protection on `main`:
 4. Enable **Require status checks to pass** - add: `claude-review`
 5. (Optional) **Dismiss stale approvals when new commits are pushed**
 
-## Step 8: CodeRabbit (Optional)
+## Step 7: CodeRabbit (Optional)
 
 Install [CodeRabbit](https://coderabbit.ai) on your GitHub repo for automated code review with 40+ linters and security scanning. The review workflow is configured to accept CodeRabbit's comments (`allowed_bots: "coderabbitai,claude"`).
 
-## Step 9: Global Settings (Per Machine)
+## Step 8: Global Settings (Per Machine)
 
 These are user-level settings, not per-project. Set them once on each machine:
 
@@ -119,7 +103,7 @@ claude mcp add github
 /pipeline docs/requirements/feature.md [optional: https://github.com/user/starter-repo]
   |
   v  [If starter URL provided: clone, copy into repo, commit, push]
-Linear Issues created --> GitHub Issues synced (linear-sync.yml)
+GitHub Issues created (with agent:ready label)
   |
   v  [agent:ready label triggers claude-dev.yml]
 Dev Agent implements feature --> creates PR
@@ -132,9 +116,6 @@ Fix Agent reads feedback --> pushes fixes --> up to 5 iterations
   |
   v  [All checks pass]
 Human reviews PR --> merges to main
-  |
-  v
-Linear issues auto-close with status "Done"
 ```
 
 **Human touchpoints**: (1) write the requirements doc, (2) review and merge PRs.
@@ -147,7 +128,6 @@ Linear issues auto-close with status "Done"
     claude-dev.yml        # Dev agent: issue -> implementation -> PR
     claude-review.yml     # Review agent: auto-review PRs
     claude-fix.yml        # Fix agent: auto-fix bot review feedback (5 iteration cap)
-    linear-sync.yml       # PR -> Linear issue sync (create on open, close on merge)
   ISSUE_TEMPLATE/
     story.yml             # Structured issue template for dev agents
 
@@ -156,12 +136,11 @@ Linear issues auto-close with status "Done"
   hooks/
     block-destructive.sh  # Blocks dangerous commands (see script for full pattern list)
   commands/
-    pipeline.md           # /pipeline - requirements -> Linear -> agents
+    pipeline.md           # /pipeline - requirements -> GitHub Issues -> agents
     review.md             # /review - 3-iteration QC review
   agents/
     security-reviewer.md  # Security review subagent
 
-.mcp.json                 # Linear MCP server config
 CLAUDE.md                 # Project instructions (fill in!)
 docs/requirements/        # Requirements docs for /pipeline
 ```
